@@ -56,7 +56,8 @@ def extract_pdf_content(pdf_path: Path) -> ParsedPDFResult:
         import fitz  # type: ignore
 
         try:
-            doc = fitz.open(str(pdf_path))
+            # 从内存流打开，避免 Windows 下解析失败时仍持有文件句柄（导致后续 unlink 报 WinError 32）
+            doc = fitz.open(stream=pdf_path.read_bytes(), filetype="pdf")
         except Exception as exc:
             raise CorruptedPDFError(f"PDF 文件已损坏或无法解析 (PyMuPDF): {exc}") from exc
 

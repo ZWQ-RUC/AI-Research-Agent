@@ -1,4 +1,4 @@
-# ==============================================================================
+﻿# ==============================================================================
 # AI Research Assistant - Windows PowerShell 环境初始化脚本 (scripts/setup.ps1)
 # 适配环境: Windows 11 + Python 3.12 + Node.js 24 + npm 12
 # 目标路径: C:\Work\Papers\AI-Research-Agent

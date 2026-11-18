@@ -86,7 +86,11 @@ async def upload_paper_pdf(
     try:
         parsed = extract_pdf_content(stored_path)
     except CorruptedPDFError as exc:
-        stored_path.unlink(missing_ok=True)
+        try:
+            stored_path.unlink(missing_ok=True)
+        except OSError:
+            # Windows 下文件句柄可能延迟释放；清理失败不应影响对用户的 422 友好拒绝
+            pass
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     pages_payload = [

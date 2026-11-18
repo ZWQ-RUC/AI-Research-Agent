@@ -45,7 +45,11 @@ class TestAIResearchAssistantBackend(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        cls.temp_dir.cleanup()
+        # Windows 下 SQLite/PDF 句柄可能延迟释放，仅忽略临时目录删除失败，不放松任何断言
+        try:
+            cls.temp_dir.cleanup()
+        except (OSError, PermissionError):
+            pass
 
     def test_01_fastapi_startup_and_health_check(self) -> None:
         resp = self.client.get("/api/health")
