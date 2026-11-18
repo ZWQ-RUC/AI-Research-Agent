@@ -201,6 +201,56 @@ const INDEX_HTML = `<!DOCTYPE html>
     .dot-ok { background: #10b981; }
     .dot-err { background: #f43f5e; }
 
+    /* System Status (健康检查页面) */
+    .health-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 960px) { .health-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .health-grid { grid-template-columns: 1fr; } }
+    .health-item {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .health-item .label {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .health-item .value {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-top: 6px;
+      word-break: break-word;
+    }
+    .health-item .hint {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    pre.json-view {
+      background: #0f172a;
+      color: #e2e8f0;
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-size: 12px;
+      line-height: 1.65;
+      overflow: auto;
+      font-family: Consolas, "Courier New", monospace;
+    }
+
     /* Main Container */
     main.container {
       max-width: 1280px;
@@ -403,6 +453,7 @@ const INDEX_HTML = `<!DOCTYPE html>
         <button id="tab-btn-report" class="nav-btn" onclick="switchTab('report')">3. 论文报告详情 <span class="badge badge-slate">18维</span></button>
         <button id="tab-btn-qa" class="nav-btn" onclick="switchTab('qa')">4. 论文智能问答 <span class="badge badge-slate">P1</span></button>
         <button id="tab-btn-experiments" class="nav-btn" onclick="switchTab('experiments')">5. 实验对比分析 <span class="badge badge-slate">P2</span></button>
+        <button id="tab-btn-status" class="nav-btn" onclick="switchTab('status')">6. 系统状态 <span class="badge badge-slate">API</span></button>
       </nav>
 
       <div class="status-bar">
@@ -637,6 +688,37 @@ const INDEX_HTML = `<!DOCTYPE html>
         </div>
       </div>
     </section>
+
+    <!-- ==================== VIEW 6: SYSTEM STATUS (健康检查) ==================== -->
+    <section id="view-status" class="view-panel">
+      <div class="card">
+        <div class="health-hero">
+          <div>
+            <h2 class="section-title" style="margin-bottom:6px;">后端服务健康状态（GET /api/health）</h2>
+            <p class="desc">实时读取后端 FastAPI 健康检查接口，展示服务状态、引擎配置与数据概况。数据每 15 秒自动刷新。</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span id="health-status-pill" class="badge badge-slate"><span class="dot"></span>检测中...</span>
+            <button class="btn btn-secondary" style="padding:7px 12px;font-size:12px;" onclick="loadHealth()">立即刷新</button>
+          </div>
+        </div>
+        <div id="health-updated-at" style="font-size:12px;color:#64748b;margin-top:12px;">尚未获取数据</div>
+      </div>
+
+      <div id="health-alert-box"></div>
+
+      <div class="card">
+        <h3 class="card-title">运行状态概览</h3>
+        <div id="health-metrics" class="health-grid">
+          <div class="health-item"><div class="label">服务状态</div><div class="value">检测中...</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">原始响应 JSON（与浏览器直接访问 /api/health 一致）</h3>
+        <pre id="health-raw-json" class="json-view">尚未获取数据</pre>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">
@@ -658,7 +740,7 @@ const INDEX_HTML = `<!DOCTYPE html>
     }
 
     function switchTab(tabId) {
-      ["home", "workspace", "report", "qa", "experiments"].forEach((id) => {
+      ["home", "workspace", "report", "qa", "experiments", "status"].forEach((id) => {
         const panel = document.getElementById("view-" + id);
         const btn = document.getElementById("tab-btn-" + id);
         if (panel) panel.classList.toggle("active", id === tabId);
@@ -667,6 +749,7 @@ const INDEX_HTML = `<!DOCTYPE html>
       if (tabId === "workspace") refreshPapersList();
       if (tabId === "report" && activePaper) renderReportDetail(activePaper);
       if (tabId === "qa") updateQaHeader();
+      if (tabId === "status") loadHealth();
     }
 
     async function checkBackendHealth() {
@@ -845,7 +928,7 @@ const INDEX_HTML = `<!DOCTYPE html>
               '<p class="desc"><strong>发表年份 (Year)：</strong> ' + escapeHtml(a.publication_year) + ' &nbsp;|&nbsp; <strong>发表期刊/会议 (Venue)：</strong> ' + escapeHtml(a.venue) + '</p>' +
             '</div>' +
             '<div style="display:flex;gap:10px;">' +
-              '<button class="btn btn-secondary" onclick="switchTab(\'qa\')">向本文提问 (P1 问答)</button>' +
+              '<button class="btn btn-secondary" onclick="switchTab(&#39;qa&#39;)">向本文提问 (P1 问答)</button>' +
               '<a id="btn-export-markdown" class="btn btn-primary" href="' + API_BASE + '/api/papers/' + paper.id + '/export" download="report_paper_' + paper.id + '.md">导出 Markdown 报告 (.md)</a>' +
             '</div>' +
           '</div>' +
@@ -1031,6 +1114,102 @@ const INDEX_HTML = `<!DOCTYPE html>
         container.innerHTML = '<div class="alert alert-error">实验分析失败：' + escapeHtml(e.message) + '</div>';
       }
     }
+
+    // ==================== 系统状态页面（/api/health 可视化） ====================
+    async function loadHealth() {
+      const pill = document.getElementById("health-status-pill");
+      const metricsBox = document.getElementById("health-metrics");
+      const rawBox = document.getElementById("health-raw-json");
+      const updatedBox = document.getElementById("health-updated-at");
+      const alertBox = document.getElementById("health-alert-box");
+      alertBox.innerHTML = "";
+
+      try {
+        const res = await fetch(API_BASE + "/api/health");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const d = await res.json();
+        const ok = d.status === "ok";
+
+        pill.className = "badge " + (ok ? "badge-emerald" : "badge-rose");
+        pill.innerHTML = '<span class="dot ' + (ok ? "dot-ok" : "dot-err") + '"></span>' + (ok ? "服务正常" : "服务异常");
+
+        const engineName = d.api_key_configured
+          ? "外部 LLM API"
+          : "原文证据核验模式";
+        const items = [
+          {
+            label: "服务状态 (status)",
+            value: ok ? "正常运行" : String(d.status),
+            hint: ok ? "FastAPI 已就绪，数据库可访问" : "请检查后端进程与数据库",
+          },
+          {
+            label: "应用与版本 (app_name / version)",
+            value: escapeHtml(d.app_name),
+            hint: "v" + escapeHtml(d.version) + " · " + escapeHtml(d.subtitle),
+          },
+          {
+            label: "分析引擎模式",
+            value: engineName,
+            hint: d.api_key_configured
+              ? "API Key 已配置，将优先调用外部兼容接口"
+              : "未配置 API Key，自动降级为原文证据提取，功能完整可用",
+          },
+          {
+            label: "LLM 服务商配置 (llm_provider)",
+            value: escapeHtml(d.llm_provider),
+            hint: "auto = 外部 API → 本地 Ollama → 原文启发式逐级降级",
+          },
+          {
+            label: "LLM API Key (api_key_configured)",
+            value: d.api_key_configured ? "已配置" : "未配置",
+            hint: d.api_key_configured ? "密钥仅保存在后端 .env" : "免 Key 模式，不会发起外部 API 费用",
+          },
+          {
+            label: "本地 Ollama 模型 (ollama_model)",
+            value: escapeHtml(d.ollama_model),
+            hint: "健康接口不主动探测；Ollama 未运行时自动降级",
+          },
+          {
+            label: "向量检索 (embedding_provider)",
+            value: d.embedding_provider === "none" ? "BM25（本地）" : escapeHtml(d.embedding_provider),
+            hint: "none = 零模型下载，按页码分块关键词检索",
+          },
+          {
+            label: "单文件上传上限 (max_upload_size_mb)",
+            value: escapeHtml(d.max_upload_size_mb) + " MB",
+            hint: "超出限制的文件将被后端直接拒绝",
+          },
+          {
+            label: "论文记录数 (papers_count)",
+            value: escapeHtml(d.papers_count),
+            hint: "SQLite 中当前保存的论文总数",
+          },
+        ];
+
+        metricsBox.innerHTML = items.map((it) =>
+          '<div class="health-item">' +
+            '<div class="label">' + it.label + '</div>' +
+            '<div class="value">' + it.value + '</div>' +
+            '<div class="hint">' + it.hint + '</div>' +
+          '</div>'
+        ).join("");
+
+        rawBox.textContent = JSON.stringify(d, null, 2);
+        updatedBox.textContent = "最近更新：" + new Date().toLocaleString("zh-CN", { hour12: false }) + " · 接口地址：" + API_BASE + "/api/health";
+      } catch (e) {
+        pill.className = "badge badge-rose";
+        pill.innerHTML = '<span class="dot dot-err"></span>无法连接';
+        alertBox.innerHTML = '<div class="alert alert-error">无法获取健康状态：' + escapeHtml(e.message) + '。请确认后端已在 :8000 端口运行。</div>';
+        rawBox.textContent = "";
+        updatedBox.textContent = "最近尝试：" + new Date().toLocaleString("zh-CN", { hour12: false });
+      }
+    }
+
+    // 仅在「系统状态」页激活时每 15 秒自动刷新，避免无意义轮询
+    setInterval(() => {
+      const panel = document.getElementById("view-status");
+      if (panel && panel.classList.contains("active")) loadHealth();
+    }, 15000);
 
     // Initialize on load
     checkBackendHealth();

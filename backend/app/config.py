@@ -38,6 +38,14 @@ _load_dotenv_file()
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
+def _resolve_project_path(raw_path: str) -> Path:
+    """将相对路径解析到项目根目录下，保证无论从哪个工作目录启动位置一致。"""
+    p = Path(raw_path).expanduser()
+    if not p.is_absolute():
+        p = PROJECT_ROOT / p
+    return p.resolve()
+
+
 @dataclass
 class Settings:
     app_name: str = "AI Research Assistant"
@@ -72,7 +80,10 @@ class Settings:
         )
     )
     upload_dir: Path = field(
-        default_factory=lambda: Path(os.getenv("UPLOAD_DIR", str(PROJECT_ROOT / "data" / "uploads")))
+        # 相对路径统一以项目根目录为基准，避免从 backend/ 或根目录启动时落到不同位置
+        default_factory=lambda: _resolve_project_path(
+            os.getenv("UPLOAD_DIR", str(PROJECT_ROOT / "data" / "uploads"))
+        )
     )
     max_upload_size_mb: int = field(default_factory=lambda: int(os.getenv("MAX_UPLOAD_SIZE_MB", "30")))
 
